@@ -5,7 +5,34 @@ import json
 import math
 
 URL = "https://www.immoweb.be/fr/recherche/maison/a-vendre?countries=BE&districts=BRUSSELS&orderBy=newest"
-
+EXTRACTED_DATA = {'id': ['id'],
+    'customerId': ['customers', 0, 'id'],
+    'customerType': ['customers', 0, 'type'],
+    'price_main': ['price', 'mainValue'],
+    'price_old': ['price', 'oldValue'],
+    'price_type': ['price', 'type'],
+    'description': ['property', 'description'],
+    'surface': ['property', 'netHabitableSurface'],
+    'bedrooms': ['property', 'bedroomCount'],
+    'livingRoom': ['property', 'livingRoom'],
+    'condition': ['property', 'building', 'condition'],
+    'constructionYear' : ['property', 'building', 'constructionYear'],
+    'landSurface': ['property', 'land', 'surface'],
+    'postalcode': ['property', 'location','postalCode'],
+    'street': ['property', 'location', 'street'],
+    'number': ['property', 'location', 'number'],
+    'type': ['property', 'type'],'subtype': ['property', 'subtype'],
+    'creationDate': ['publication', 'creationDate'],
+    'expirationDate': ['publication', 'expirationDate'],
+    'lastModificationDate': ['publication', 'lastModificationDate'],
+    'epcScore': ['transaction', 'certificates', 'epcScore'],
+    'primaryEnergyConsumptionPerSqm': ['transaction', 'certificates', 'primaryEnergyConsumptionPerSqm'],
+    'bathroomCount': ['property', 'bathroomCount'],
+    'showerRoomCount': ['property', 'showerRoomCount'],
+    'parkingCountIndoor': ['property', 'parkingCountIndoor'],
+    'parkingCountOutdoor': ['property', 'parkingCountOutdoor'],
+    'livingRoom': ['property', 'livingRoom', 'surface']
+    }
 def requestURL(conn, url):
     # Request page from url
     try:
