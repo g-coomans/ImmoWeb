@@ -40,8 +40,8 @@ I limit to a few number based on my personal use :
 *EXTRACTED_DATA* can be changed to extract your desired data from ads. 
 
 ## What's next ?
-- clarify *price_first* and *price_old*
-- add my use for example
+- ~~clarify *price_first* and *price_old*~~
+- ~~add my use for example~~
 - adapt to renting ads
 - re-work updateAd 
 - url generator for your request
