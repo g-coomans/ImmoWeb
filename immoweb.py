@@ -3,6 +3,7 @@ from requests.exceptions import HTTPError
 from bs4 import BeautifulSoup
 import json
 import math
+import datetime
 
 EXTRACTED_DATA = {'id': ['id'],
     'customerId': ['customers', 0, 'id'],
@@ -126,6 +127,8 @@ def extractDataAd(ad):
     
     removeKey = ['bathroomCount', 'showerRoomCount', 'parkingCountIndoor', 'parkingCountOutdoor']
     [dataAd.pop(key) for key in removeKey]
+    
+    dataAd['lastSeen'] = datetime.datetime.now()
     
     return dataAd
 

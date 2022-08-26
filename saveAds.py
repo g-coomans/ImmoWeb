@@ -9,12 +9,13 @@ import random
 import immoweb
 
 
-URL = "https://www.immoweb.be/fr/recherche/maison/a-vendre?countries=BE&districts=BRUSSELS&orderBy=newest"
+urlRent = "https://www.immoweb.be/fr/recherche/maison-et-appartement/a-louer/brussels/arrondissement?countries=BE&page=1&orderBy=newest"
+urlBuy = "https://www.immoweb.be/fr/recherche/maison-et-appartement/a-vendre/bruxelles/arrondissement?countries=BE&page=1&orderBy=newest"
 HEADERS = {'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:102.0) Gecko/20100101 Firefox/102.0'}
-DATABASE = '~/immoweb/db.sqlite'
+DATABASE = '/home/geoffrey/ImmoWeb/db.sqlite'
 # Wainting time (in sec) between two requests to website
-MIN_WAINTING = 3 # in sec
-MAX_WAINTING = 10 # in sec
+MIN_WAINTING = 5 # in sec
+MAX_WAINTING = 15 # in sec
 
 def connectDb(): 
     cursor = sqlite3.connect(DATABASE)
@@ -30,14 +31,25 @@ def connectDb():
         )''')
     return cursor
 
-def updateAd(database, adId):
+def updatePrice(database, adId, Price):
+    try:
+        sql = f'''UPDATE ad SET price_main = "{Price}" WHERE id = {adId}'''
+        cursor = database.cursor()
+        cursor.execute(sql)
+        database.commit()
+    except sqlite3.Error as error:
+        print(f'Failed to update price_main (id = {adId}) \n{error}\n{sql}')
+    finally:
+        cursor.close()
+
+def updateLastSeen(database, adId):
     try:
         sql = f'''UPDATE ad SET lastSeen = "{datetime.datetime.now()}" WHERE id = {adId}'''
         cursor = database.cursor()
         cursor.execute(sql)
         database.commit()
     except sqlite3.Error as error:
-        print(f'Failed to update ad (id = {adId}) \n{error}\n{sql}')
+        print(f'Failed to update Last Seen date (id = {adId}) \n{error}\n{sql}')
     finally:
         cursor.close()
         
@@ -56,20 +68,19 @@ def createAd(database, ad):
     finally :
         cursor.close()
 
-def getAllIds(database):
+def getStoredAds(database):
     ### Retrieve all id in the database
     try:
-        sql = f''' SELECT id FROM ad '''
+        sql = f''' SELECT id, price_main FROM ad '''
         
         cursor = database.cursor()
         cursor.execute(sql)
         allIds = cursor.fetchall()
     except sqlite3.Error as error:
-        print(f"Failed to retrieve all Id's - {error}")
+        print(f"Failed to retrieve all stored ads - {error}")
     finally :
         cursor.close()
     return allIds
-
         
 def createConnection(headers):
     conn = requests.Session()
@@ -82,33 +93,38 @@ def formatDateFromAd(date):
     date = date.split("+")[0]
     return date
 
-
 def waitingTime():
     time.sleep(random.choice([MIN_WAINTING,MAX_WAINTING]))
+
+def updateData(database, session, url):
+    storedAds = {ad[0]: ad[1] for ad in getStoredAds(dataBase)} # List all knowed id from database
+    totalPages = immoweb.getTotalPages(currentSession, url)
+    
+    for page in range(1,totalPages+1):
+        print(f'{datetime.datetime.now().strftime("%d/%m/%Y %H:%M")} - Start Page : {page} of {totalPages}')
+        ads = immoweb.getAds(currentSession, url, page) # Get all ads from a list page
+        waitingTime()
+                    
+        for ad in ads:
+            # If a id is already know:
+            # update price if changed and lastSeen field in any case 
+            # else create a new entry.
+            if ad['id'] in storedAds:
+                if ad['price']['mainValue'] != storedAds[ad['id']]:
+                    updatePrice(dataBase,ad['id'],ad['price']['mainValue'])
+                updateLastSeen(dataBase,ad['id'])
+            else:
+                createAd(dataBase,immoweb.extractDataAd(immoweb.getAd(currentSession, ad['id'])))
+                waitingTime()
 
 if __name__ == "__main__":
     print(f'{20*"x"}\n{datetime.datetime.now().strftime("%d/%m/%Y %H:%M")} - Launched \n{20*"x"}')
     
     currentSession = createConnection(HEADERS) # Open a connection 
     dataBase = connectDb() # Connect to Database
-    allIds = [id[0] for id in getAllIds(dataBase)] # List all knowed id from database 
-   
-    totalPages = immoweb.getTotalPages(currentSession, URL)
-    for page in range(1,totalPages+1):
-        print(f'{datetime.datetime.now().strftime("%d/%m/%Y %H:%M")} - Start Page : {page} of {totalPages}')
-        ads = immoweb.getAds(currentSession, URL, page) # Get all ads from a list page
-    
-        listAdsId = [ad['id'] for ad in ads] # Retrieve all id from Ads
-        waitingTime()
-    
-        for adId in listAdsId:
-            # If a id is already know, lastSeen field for this entry is updated
-            # else create a new entry.
-            if adId in allIds:
-                updateAd(dataBase,adId)
-            else:
-                createAd(dataBase,immoweb.extractDataAd(immoweb.getAd(currentSession, adId)))
-                waitingTime()
+
+    updateData(dataBase, currentSession, urlBuy)
+    updateData(dataBase, currentSession, urlRent)
 
     dataBase.close()
     currentSession.close()
