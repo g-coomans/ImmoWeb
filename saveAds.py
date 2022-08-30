@@ -61,7 +61,7 @@ def createAds(database, ads):
 def getStoredAds(database):
     ### Retrieve all id in the database
     try:
-        sql = f''' SELECT id, price_main FROM ad '''
+        sql = f''' SELECT id FROM ad '''
         
         cursor = database.cursor()
         cursor.execute(sql)
@@ -87,7 +87,7 @@ def waitingTime():
     time.sleep(random.choice([MIN_WAINTING,MAX_WAINTING]))
 
 def updateData(database, session, url):
-    storedAds = {ad[0]: ad[1] for ad in getStoredAds(dataBase)} # List all knowed id from database
+    storedAds = [ad[0] for ad in getStoredAds(dataBase)] # List all knowed id from database
     totalPages = immoweb.getTotalPages(currentSession, url)
     
     for page in range(1,totalPages+1):
@@ -98,19 +98,19 @@ def updateData(database, session, url):
         toUpdate = []
         toCreate = []
         for ad in ads:
-            # If a id is already know:
-            # update price if changed and lastSeen field in any case 
+            # If a id is already know, update price and lastSeen
             # else create a new entry.
             if ad['id'] in storedAds:
                 toUpdate.append((ad['price']['mainValue'], datetime.datetime.now(), ad['id']))
-                storedAds.pop(ad['id'])
+                storedAds.remove(ad['id'])
             else:
                 toCreate.append(immoweb.extractDataAd(immoweb.getAd(currentSession, ad['id'])))
                 waitingTime()
         if toUpdate:
             updateAds(dataBase,toUpdate)
         if toCreate:
-            createAds(dataBase,toCreate) 
+            createAds(dataBase,toCreate)
+
 
 if __name__ == "__main__":
     print(f'{20*"x"}\n{datetime.datetime.now().strftime("%d/%m/%Y %H:%M")} - Launched \n{20*"x"}')
@@ -124,3 +124,5 @@ if __name__ == "__main__":
     dataBase.close()
     currentSession.close()
     print(f'{20*"x"}\n{datetime.datetime.now().strftime("%H:%M %d/%m/%Y")} - Finished \n{20*"x"}')
+
+
