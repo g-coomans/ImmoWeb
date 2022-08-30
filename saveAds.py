@@ -15,7 +15,7 @@ HEADERS = {'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:102.0) Ge
 DATABASE = '/home/geoffrey/ImmoWeb/db.sqlite'
 # Wainting time (in sec) between two requests to website
 MIN_WAINTING = 5 # in sec
-MAX_WAINTING = 15 # in sec
+MAX_WAINTING = 10 # in sec
 
 def connectDb(): 
     cursor = sqlite3.connect(DATABASE)
@@ -31,37 +31,27 @@ def connectDb():
         )''')
     return cursor
 
-def updatePrice(database, adId, Price):
+def updateAds(database,ads):
     try:
-        sql = f'''UPDATE ad SET price_main = "{Price}" WHERE id = {adId}'''
+        sql = '''UPDATE ad SET price_main = ?, lastSeen=? WHERE id = ?;'''
         cursor = database.cursor()
-        cursor.execute(sql)
+        cursor.executemany(sql, ads)
         database.commit()
     except sqlite3.Error as error:
-        print(f'Failed to update price_main (id = {adId}) \n{error}\n{sql}')
+        print(f'Failed in sqlite (id = {ads}) \n{error}\n{sql}')
     finally:
-        cursor.close()
+        cursor.close()    
 
-def updateLastSeen(database, adId):
+def createAds(database, ads):
+    ### Create new rows in database based on keys of ad list.
     try:
-        sql = f'''UPDATE ad SET lastSeen = "{datetime.datetime.now()}" WHERE id = {adId}'''
-        cursor = database.cursor()
-        cursor.execute(sql)
-        database.commit()
-    except sqlite3.Error as error:
-        print(f'Failed to update Last Seen date (id = {adId}) \n{error}\n{sql}')
-    finally:
-        cursor.close()
-        
-def createAd(database, ad):
-    ### Create a new row in database based on keys of ad list.
-    try: 
-        attrib_names = ", ".join(ad.keys())
-        attrib_values = ", ".join("?" * len(ad.keys()))
+        attrib_names = ", ".join(ads[0].keys())
+        attrib_values = ", ".join("?" * len(ads[0].keys()))
         sql = f''' INSERT INTO ad({attrib_names}) VALUES ({attrib_values}) '''
         
         cursor = database.cursor()
-        cursor.execute(sql, list(ad.values()))
+        data = list(map(list, (ad.values() for ad in ads)))
+        cursor.executemany(sql, data)
         database.commit()
     except sqlite3.Error as error:
         print(f"Failed to insert ad (id = {ad['id']}) - {error}")
@@ -104,18 +94,23 @@ def updateData(database, session, url):
         print(f'{datetime.datetime.now().strftime("%d/%m/%Y %H:%M")} - Start Page : {page} of {totalPages}')
         ads = immoweb.getAds(currentSession, url, page) # Get all ads from a list page
         waitingTime()
-                    
+
+        toUpdate = []
+        toCreate = []
         for ad in ads:
             # If a id is already know:
             # update price if changed and lastSeen field in any case 
             # else create a new entry.
             if ad['id'] in storedAds:
-                if ad['price']['mainValue'] != storedAds[ad['id']]:
-                    updatePrice(dataBase,ad['id'],ad['price']['mainValue'])
-                updateLastSeen(dataBase,ad['id'])
+                toUpdate.append((ad['price']['mainValue'], datetime.datetime.now(), ad['id']))
+                storedAds.pop(ad['id'])
             else:
-                createAd(dataBase,immoweb.extractDataAd(immoweb.getAd(currentSession, ad['id'])))
+                toCreate.append(immoweb.extractDataAd(immoweb.getAd(currentSession, ad['id'])))
                 waitingTime()
+        if toUpdate:
+            updateAds(dataBase,toUpdate)
+        if toCreate:
+            createAds(dataBase,toCreate) 
 
 if __name__ == "__main__":
     print(f'{20*"x"}\n{datetime.datetime.now().strftime("%d/%m/%Y %H:%M")} - Launched \n{20*"x"}')
