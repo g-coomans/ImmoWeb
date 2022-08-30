@@ -65,7 +65,7 @@ def getTotalPages(conn, url):
     # return number of result pages for a search url
     try:
         totalPages = math.ceil(getTotalAds(conn, url)/30)
-    except TypeError as Err:
+    except TypeError as err:
         print("No search page found. Please review the URL (getTotalAds)")
         totalPages = -1
         
@@ -83,12 +83,16 @@ def getAds(conn, url, page) :
 
 def getAd(conn, id):
     # Return a json with all data from a specific classified
-    URL_AD = "https://www.immoweb.be/en/classified/"
+    URL_AD = "https://www.immoweb.be/fr/annonce/"
     
     adPage = requestURL(conn, URL_AD + str(id))
     soup = BeautifulSoup (adPage.text, "html.parser")
-    ad = json.loads(soup.find("div", "classified").find("script").string.split("window.classified = ")[1][:-10])
-    
+    try:
+        ad = json.loads(soup.find("div", "classified").find("script").string.split("window.classified = ")[1][:-10])
+    except AttributeError as err:
+        print(f'Ad not find (ad = {id})')
+    except UnboundLocalError as err:
+        print(f'Ad not find (ad = {id})')
     
     return ad
 
