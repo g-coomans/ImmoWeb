@@ -135,7 +135,3 @@ def extractDataAd(ad):
     dataAd['lastSeen'] = datetime.datetime.now()
     
     return dataAd
-
-
-
-   
