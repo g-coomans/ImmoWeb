@@ -86,11 +86,11 @@ def formatDateFromAd(date):
 def waitingTime():
     time.sleep(random.choice([MIN_WAINTING,MAX_WAINTING]))
 
-def updateData(database, session, url):
+def updateData(database, session, url, startPage=1):
     storedAds = [ad[0] for ad in getStoredAds(dataBase)] # List all knowed id from database
     totalPages = immoweb.getTotalPages(currentSession, url)
     
-    for page in range(1,totalPages+1):
+    for page in range(startPage,totalPages+1):
         print(f'{datetime.datetime.now().strftime("%d/%m/%Y %H:%M")} - Start Page : {page} of {totalPages}')
         ads = immoweb.getAds(currentSession, url, page) # Get all ads from a list page
         waitingTime()
@@ -104,8 +104,10 @@ def updateData(database, session, url):
                 toUpdate.append((ad['price']['mainValue'], datetime.datetime.now(), ad['id']))
                 storedAds.remove(ad['id'])
             else:
-                toCreate.append(immoweb.extractDataAd(immoweb.getAd(currentSession, ad['id'])))
-                waitingTime()
+                newAd = immoweb.getAd(currentSession, ad['id'])
+                if newAd:
+                    toCreate.append(immoweb.extractDataAd(newAd))
+                    waitingTime()
         if toUpdate:
             updateAds(dataBase,toUpdate)
         if toCreate:

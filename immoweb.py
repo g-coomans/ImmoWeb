@@ -89,12 +89,13 @@ def getAd(conn, id):
     soup = BeautifulSoup (adPage.text, "html.parser")
     try:
         ad = json.loads(soup.find("div", "classified").find("script").string.split("window.classified = ")[1][:-10])
+        return ad
     except AttributeError as err:
         print(f'Ad not find (ad = {id})')
     except UnboundLocalError as err:
         print(f'Ad not find (ad = {id})')
     
-    return ad
+    
 
 def getDataFromTree(searchKey, data):
     # Extract data following the search Key in the list 'searchKey' in 'data' tree
