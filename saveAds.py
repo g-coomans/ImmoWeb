@@ -11,7 +11,7 @@ import immoweb
 
 urlRent = "https://www.immoweb.be/fr/recherche/maison-et-appartement/a-louer/brussels/arrondissement?countries=BE&page=1&orderBy=newest"
 urlBuy = "https://www.immoweb.be/fr/recherche/maison-et-appartement/a-vendre/bruxelles/arrondissement?countries=BE&page=1&orderBy=newest"
-HEADERS = {'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:102.0) Gecko/20100101 Firefox/102.0'}
+
 DATABASE = '/home/geoffrey/ImmoWeb/db.sqlite'
 # Wainting time (in sec) between two requests to website
 MIN_WAINTING = 5 # in sec
@@ -72,11 +72,7 @@ def getStoredAds(database):
         cursor.close()
     return allIds
         
-def createConnection(headers):
-    conn = requests.Session()
-    conn.headers = headers
-    
-    return conn
+
 
 def formatDateFromAd(date):
     date = date.replace("T"," ")
@@ -115,7 +111,7 @@ def updateData(database, session, url):
 if __name__ == "__main__":
     print(f'{20*"x"}\n{datetime.datetime.now().strftime("%d/%m/%Y %H:%M")} - Launched \n{20*"x"}')
     
-    currentSession = createConnection(HEADERS) # Open a connection 
+    currentSession = immoweb.createConnection() # Open a connection 
     dataBase = connectDb() # Connect to Database
 
     updateData(dataBase, currentSession, urlBuy)
