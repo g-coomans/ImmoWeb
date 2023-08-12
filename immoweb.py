@@ -11,6 +11,7 @@ EXTRACTED_DATA = {'id': ['id'],
     'price_main': ['price', 'mainValue'],
     'price_old': ['price', 'oldValue'],
     'price_type': ['price', 'type'],
+    'title': ['property', 'title'],
     'description': ['property', 'description'],
     'surface': ['property', 'netHabitableSurface'],
     'bedrooms': ['property', 'bedroomCount'],
@@ -19,6 +20,7 @@ EXTRACTED_DATA = {'id': ['id'],
     'constructionYear' : ['property', 'building', 'constructionYear'],
     'landSurface': ['property', 'land', 'surface'],
     'postalcode': ['property', 'location','postalCode'],
+    'city': ['property', 'location','locality'],
     'street': ['property', 'location', 'street'],
     'number': ['property', 'location', 'number'],
     'type': ['property', 'type'],'subtype': ['property', 'subtype'],
@@ -31,7 +33,8 @@ EXTRACTED_DATA = {'id': ['id'],
     'showerRoomCount': ['property', 'showerRoomCount'],
     'parkingCountIndoor': ['property', 'parkingCountIndoor'],
     'parkingCountOutdoor': ['property', 'parkingCountOutdoor'],
-    'livingRoom': ['property', 'livingRoom', 'surface']
+    'livingRoom': ['property', 'livingRoom', 'surface'],
+    'url' : ['url']
     }
 
 HEADERS = {'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:102.0) Gecko/20100101 Firefox/102.0'}
@@ -90,9 +93,11 @@ def getAds(conn, url, page) :
 
 def getAd(conn, id):
     # Return a json with all data from a specific classified
-    URL_AD = "https://www.immoweb.be/fr/annonce/"
+    #URL_AD = "https://www.immoweb.be/fr/annonce/"
+    URL_AD = "https://www.immoweb.be/nl/zoekertje/"
+    ad_url = URL_AD + str(id)
     
-    adPage = requestURL(conn, URL_AD + str(id))
+    adPage = requestURL(conn, ad_url)
     soup = BeautifulSoup (adPage.text, "html.parser")
     try:
         ad = json.loads(soup.find("div", "classified").find("script").string.split("window.classified = ")[1][:-10])
@@ -101,6 +106,7 @@ def getAd(conn, id):
     except UnboundLocalError as err:
         print(f'Ad not find (ad = {id})')
     
+    ad["url"] = ad_url
     return ad
 
 def getDataFromTree(searchKey, data):
@@ -139,6 +145,17 @@ def extractDataAd(ad):
     removeKey = ['bathroomCount', 'showerRoomCount', 'parkingCountIndoor', 'parkingCountOutdoor']
     [dataAd.pop(key) for key in removeKey]
     
+    dataAd['lastModificationDate'] = dataAd['lastModificationDate'].split('.')[0]  # only keep '2023-08-12T01:10:00' from '2023-08-12T01:10:00.657+0000'
     dataAd['lastSeen'] = datetime.datetime.now()
-    
+
+    pic_list = []
+    pic_download = []
+    if "media" in ad:
+        if "pictures" in ad["media"]:
+            for pic_item in ad["media"]["pictures"]:
+                pic_list.append(pic_item['largeUrl'])
+                pic_download.append(pic_item['largeUrl'])  # or use: smallUrl, mediumUrl
+    dataAd['pictureUrls'] = ",".join(pic_list)
+    dataAd['pictureDownloads'] = pic_download
+    dataAd["displayAd"] = 1
     return dataAd
