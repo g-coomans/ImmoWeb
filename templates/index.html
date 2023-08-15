@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row">
+    <h1>{{title}}</h1>
+    {% for post in posts %}
+        <div class='house' id="{{ post['id'] }}">
+            
+              <h2><a href="{{ url_for('index', _external=True) }}house/{{ post['id'] }}">{{ post['title'] }} </a></h2>
+            
+              <table id="properties">
+                <tr>
+                  <td> <a href="{{ post['url'] }}" target="_blank">Immoweb Id: {{ post['id'] }}</a> </td>
+                  <td>Prijs: &euro; {{ post['price_main'] }}</td>
+                  <td>Grond: {{ post['landSurface'] }} &#13217;</td>
+                  <td>Bewoonbaar: {{ post['surface'] }} &#13217;</td>
+                  <td>Bouwjaar: {{ post['constructionYear'] }}</td>
+                  <td>EPC: {{ post['epcScore'] }} {{ post['primaryEnergyConsumptionPerSqm'] }} W/&#13217;</td>
+                </tr>
+                <tr>
+                  <td><a href="https://www.google.com/maps/place/{{ post['street'] }}+{{ post['number'] }},+{{ post['postalcode'] }}+{{ post['city'] }}" target="_blank">{{ post['street'] }} {{ post['number'] }}, {{ post['postalcode'] }} {{ post['city'] }}</a></td>
+                  <td>gewijzigd: {{ post['lastModificationDate'] }}</td>
+                  
+                </tr>
+              </table>
+            
+              <p>{{ post['description'] }}</p>
+            
+              <div class="gallery">
+                {% for img_file in post['pictureDownloads'] %}
+                  <img src="{{ url_for('index', _external=True) }}{{ img_file }}" loading="lazy">
+                {% endfor %}
+              </div>
+            
+              {% if post['displayAd'] == 1 %}
+              <form action="{{ url_for('hide', id=post['id'], _external=True) }}" method="POST">
+                <input type="submit" value="Hide">
+              </form>
+              {% else %}
+              <form action="{{ url_for('unhide', id=post['id'], _external=True) }}" method="POST">
+                <input type="submit" value="Unhide">
+              </form>
+              {% endif %}
+          
+        </div> <!-- house -->
+    {% endfor %}
+    
+    
+    {% if prev_url %}
+    <a class="button" href="{{ prev_url }}">&lt;&lt;</a>
+    {% endif %}
+    &nbsp; &nbsp; pagina &nbsp; &nbsp; 
+    {% if next_url %}
+    <a class="button" href="{{ next_url }}">&gt;&gt;</a>
+    {% endif %}
+    
+    <div class="col-12">
+      </br>
+    </div>
+    
+</div> <!-- row -->
+    
+{% endblock %}

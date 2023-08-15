@@ -1,18 +1,19 @@
 #!/usr/bin/env python3
 #-*- coding: utf-8 -*-
 
-import requests
 import sqlite3
 import datetime
 import time
 import random
 import immoweb
+import os
+import requests
 
 
-urlRent = "https://www.immoweb.be/fr/recherche/maison-et-appartement/a-louer/brussels/arrondissement?countries=BE&page=1&orderBy=newest"
-urlBuy = "https://www.immoweb.be/fr/recherche/maison-et-appartement/a-vendre/bruxelles/arrondissement?countries=BE&page=1&orderBy=newest"
-HEADERS = {'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:102.0) Gecko/20100101 Firefox/102.0'}
-DATABASE = '/home/geoffrey/ImmoWeb/db.sqlite'
+urlBuy = "https://www.immoweb.be/nl/zoeken?propertyTypes=HOUSE&postalCodes=BE-8790,BE-9031&transactionTypes=FOR_SALE&minFacadeCount=4&districts=DENDERMONDE,KORTRIJK,AALST,OUDENAARDE,TIELT&priceType=PRICE&minLandSurface=550&countries=BE&maxPrice=700000&maxFacadeCount=4&orderBy=newest"
+
+DATABASE = './immodb.sqlite'
+PIC_DOWNLOAD_DIR = "./static/img_cache"
 # Wainting time (in sec) between two requests to website
 MIN_WAINTING = 5 # in sec
 MAX_WAINTING = 10 # in sec
@@ -21,13 +22,13 @@ def connectDb():
     cursor = sqlite3.connect(DATABASE)
     cursor.execute('''CREATE TABLE IF NOT EXISTS ad(id INTEGER,
         customerId INTEGER, customerType TEXT, price_main INTEGER,
-        price_old INTEGER, price_type TEXT, description TEXT, surface INTEGER,
+        price_old INTEGER, price_type TEXT, title TEXT, description TEXT, surface INTEGER,
         bedrooms INTEGER, bathrooms INTEGER, livingRoom INTEGER,
         parking INTEGER, condition TEXT, constructionYear TEXT,
-        landSurface INTEGER, postalcode TEXT, street text, number INTEGER,
+        landSurface INTEGER, postalcode TEXT, city TEXT, street text, number INTEGER,
         type text, subtype TEXT, creationDate TEXT, expirationDate TEXT,
         lastModificationDate TEXT, epcScore TEXT, primaryEnergyConsumptionPerSqm ,
-        lastSeen TIMESTAMP
+        lastSeen TIMESTAMP, url TEXT, pictureUrls TEXT, pictureDownloads TEXT, displayAd INTEGER 
         )''')
     return cursor
 
@@ -44,6 +45,7 @@ def updateAds(database,ads):
 
 def createAds(database, ads):
     ### Create new rows in database based on keys of ad list.
+    
     try:
         attrib_names = ", ".join(ads[0].keys())
         attrib_values = ", ".join("?" * len(ads[0].keys()))
@@ -54,7 +56,7 @@ def createAds(database, ads):
         cursor.executemany(sql, data)
         database.commit()
     except sqlite3.Error as error:
-        print(f"Failed to insert ad (id = {ad['id']}) - {error}")
+        print(f"Failed to insert ad (id = {ads['id']}) - {error}")
     finally :
         cursor.close()
 
@@ -71,12 +73,6 @@ def getStoredAds(database):
     finally :
         cursor.close()
     return allIds
-        
-def createConnection(headers):
-    conn = requests.Session()
-    conn.headers = headers
-    
-    return conn
 
 def formatDateFromAd(date):
     date = date.replace("T"," ")
@@ -87,12 +83,12 @@ def waitingTime():
     time.sleep(random.choice([MIN_WAINTING,MAX_WAINTING]))
 
 def updateData(database, session, url):
-    storedAds = [ad[0] for ad in getStoredAds(dataBase)] # List all knowed id from database
-    totalPages = immoweb.getTotalPages(currentSession, url)
+    storedAds = [ad[0] for ad in getStoredAds(database)] # List all knowed id from database
+    totalPages = immoweb.getTotalPages(session, url)
     
     for page in range(1,totalPages+1):
         print(f'{datetime.datetime.now().strftime("%d/%m/%Y %H:%M")} - Start Page : {page} of {totalPages}')
-        ads = immoweb.getAds(currentSession, url, page) # Get all ads from a list page
+        ads = immoweb.getAds(session, url, page) # Get all ads from a list page
         waitingTime()
 
         toUpdate = []
@@ -103,26 +99,49 @@ def updateData(database, session, url):
             if ad['id'] in storedAds:
                 toUpdate.append((ad['price']['mainValue'], datetime.datetime.now(), ad['id']))
                 storedAds.remove(ad['id'])
+                waitingTime()
             else:
-                toCreate.append(immoweb.extractDataAd(immoweb.getAd(currentSession, ad['id'])))
+                ad_details = immoweb.extractDataAd(immoweb.getAd(session, ad['id']))
+                ad_details['pictureDownloads'] = downloadPictures(ad_details['pictureDownloads'], PIC_DOWNLOAD_DIR)
+                toCreate.append(ad_details)
                 waitingTime()
         if toUpdate:
-            updateAds(dataBase,toUpdate)
+            updateAds(database,toUpdate)
         if toCreate:
-            createAds(dataBase,toCreate)
+            createAds(database,toCreate)
+
+def downloadPictures(urls, dowmload_dir):
+    if not os.path.exists(dowmload_dir):
+        os.mkdir(dowmload_dir)
+    local_urls = []
+    for pic_url in urls:
+        pic_file_name = pic_url.split('/')[-1].split('?')[0]
+        local_pic_path = os.path.join(dowmload_dir, pic_file_name)
+        local_urls.append(local_pic_path)
+        if os.path.exists(local_pic_path):
+            continue
+        try:
+            with requests.get(pic_url, stream=True) as r:
+                if r.status_code != 200:
+                    print(f"Error downloading pic: {pic_url} : {str(r)}")
+                with open(local_pic_path, 'wb') as f:
+                    f.write(r.content)
+        except Exception as e:
+            print(f"Error downloading pic: {pic_url} : {str(e)}")
+    return ",".join(local_urls)
 
 
 if __name__ == "__main__":
-    print(f'{20*"x"}\n{datetime.datetime.now().strftime("%d/%m/%Y %H:%M")} - Launched \n{20*"x"}')
+    print(f'{datetime.datetime.now().strftime("%d/%m/%Y %H:%M")} - Launched')
+    print(urlBuy)
     
-    currentSession = createConnection(HEADERS) # Open a connection 
+    currentSession = immoweb.createConnection() # Open a connection 
+
     dataBase = connectDb() # Connect to Database
-
     updateData(dataBase, currentSession, urlBuy)
-    updateData(dataBase, currentSession, urlRent)
-
     dataBase.close()
+
     currentSession.close()
-    print(f'{20*"x"}\n{datetime.datetime.now().strftime("%H:%M %d/%m/%Y")} - Finished \n{20*"x"}')
+    print(f'{datetime.datetime.now().strftime("%H:%M %d/%m/%Y")} - Finished')
 
 
