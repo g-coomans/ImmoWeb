@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{title}}</title>
+    <!-- https://jenil.github.io/chota/ minimal css, example: https://raw.githack.com/jenil/chota/main/test/index.html -->
+    <link rel="stylesheet" href='/static/chota.min.css' />
+    <link rel="stylesheet" href='/static/gallery.css' />
+    <style>
+        .house {
+            padding: 30px;
+            margin-bottom: 15px;
+            background-color: #f3f3f3
+        }
+        table {
+            border-collapse: separate;
+            border-spacing: 0px 0;
+            margin-bottom: 15px;
+        }
+        td {
+            padding: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <main role="main">
+        <div id="top" class="container" role="document">
+            <nav>
+                <a href="{{ url_for('index') }}"> Database </a>
+                <a href="{{ url_for('hidden') }}"> Hidden </a>
+            </nav>
+            <hr>
+            <div class="content">
+                {% block content %} {% endblock %}
+            </div>
+        </div>
+    </main>
+<script>
+window.onload = () => {
+ for (let i of document.querySelectorAll(".gallery img")) {
+    i.onclick = () => i.classList.toggle("full");
+ }
+};
+</script>
+</body>
+</html>
