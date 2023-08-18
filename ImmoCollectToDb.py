@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
 #-*- coding: utf-8 -*-
 
-import sqlite3
-import datetime
-import time
-import random
 from ImmoCollecterImmoWeb import ImmoWeb
 from ImmoCollecterVlan import ImmoVlan
 from ImmoCollecterTools import ImmoCollecterTools
-
+import sqlite3
+import time
+import random
+import threading
 
 DATABASE = './immodb.sqlite'
 PIC_DOWNLOAD_DIR = "./static/img_cache"
@@ -77,7 +76,8 @@ class HouseDb:
 def wait_randomized_time():
     time.sleep(random.choice([MIN_WAINTING,MAX_WAINTING]))
 
-def fetch_houses_and_update_db(immo, database):
+def fetch_houses_and_update_db(immo):
+    database = HouseDb()
     house_list = immo.get_list_all_houses()
     database_houses = database.get_id_entries()
     wait_randomized_time()
@@ -91,23 +91,24 @@ def fetch_houses_and_update_db(immo, database):
         else:
             database.update_entry(house_details)
         wait_randomized_time()
+    database.close()
 
 
 
 if __name__ == "__main__":
 
-    # immoweb_search_url = "https://www.immoweb.be/nl/zoeken?propertyTypes=HOUSE&postalCodes=BE-8790,BE-9031&transactionTypes=FOR_SALE&minFacadeCount=4&districts=DENDERMONDE,KORTRIJK,AALST,OUDENAARDE,TIELT&priceType=PRICE&minLandSurface=550&countries=BE&maxPrice=700000&maxFacadeCount=4&orderBy=newest"
-    # immo_web = ImmoWeb(immoweb_search_url)
-    # immo_web_db = HouseDb()
-    # print("Starting ImmoWeb search")
-    # fetch_houses_and_update_db(immo_web, immo_web_db)
-    # immo_web_db.close()
-    
+    immoweb_search_url = "https://www.immoweb.be/nl/zoeken?propertyTypes=HOUSE&postalCodes=BE-8790,BE-9031&transactionTypes=FOR_SALE&minFacadeCount=4&districts=DENDERMONDE,KORTRIJK,AALST,OUDENAARDE,TIELT&priceType=PRICE&minLandSurface=550&countries=BE&maxPrice=700000&maxFacadeCount=4&orderBy=newest"
     vlan_search_url = "https://immo.vlan.be/nl/vastgoed?transactiontypes=te-koop,in-openbare-verkoop&propertytypes=huis&provinces=oost-vlaanderen,west-vlaanderen&tags=hasgarden&mintotalsurface=1000&maxprice=750000&facades=4&noindex=1"
-    immo_vlan = ImmoVlan(vlan_search_url)
-    immo_vlan_db = HouseDb()
-    print("Starting Immo Vlan search")
-    fetch_houses_and_update_db(immo_vlan, immo_vlan_db)
-    immo_vlan_db.close()
+    
+    threads = []
+    threads.append(threading.Thread(target=fetch_houses_and_update_db, args=(ImmoWeb(immoweb_search_url),)))
+    threads.append(threading.Thread(target=fetch_houses_and_update_db, args=(ImmoVlan(vlan_search_url),)))
+
+    for thread in threads:
+        thread.start()
+    
+    for thread in threads:
+        thread.join()
+
 
 
