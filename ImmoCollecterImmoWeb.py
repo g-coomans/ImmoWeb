@@ -84,7 +84,7 @@ class ImmoWeb(ImmoCollecterItf):
         return total_pages
 
     def get_list_all_houses(self) :
-        total_pages = self._get_total_pages(self.search_url)
+        total_pages = min(self._get_total_pages(self.search_url),5)  # only go up to 5 pages
         houses = []
         
         for page in range(1,total_pages+1):

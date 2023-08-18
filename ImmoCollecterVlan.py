@@ -98,7 +98,7 @@ class ImmoVlan(ImmoCollecterItf):
         return total_pages
 
     def get_list_all_houses(self) :
-        total_pages = self._get_total_pages(self.search_url)
+        total_pages = min(self._get_total_pages(self.search_url), 6)  # only go up to 6 pages
         houses = []
 
         # second options: STORAGE_KEY_SEARCH_RESULTS -> already json
