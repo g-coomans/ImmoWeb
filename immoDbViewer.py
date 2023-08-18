@@ -25,13 +25,14 @@ def log(log_text):
     with open(LOG_FILE, 'a') as l:
         l.write(stamped_log_text+"\n")
 
-used_db_keys = ['id', 'title', 'url', 'price_main', 'landSurface', 'surface', 'constructionYear', 'epcScore', 'primaryEnergyConsumptionPerSqm', 'street', 'number', 'postalcode', 'city', 'description', 'displayAd']
+used_db_keys = ['id', 'title', 'url', 'price_main', 'landSurface', 'surface', 'constructionYear', 'epcScore', 'primaryEnergyConsumptionPerSqm', 'street', 'number', 'postalcode', 'city', 'description', 'displayAd', 'immoProvider']
 def get_all_houses(elem_to_display=30, offset=0, show_hidden=False, list_of_ids=None):
     con = get_db_connection()
     displayAd = 0 if show_hidden else 1
     if list_of_ids == None:
         rows = con.execute("SELECT * FROM ad WHERE displayAd = ? ORDER BY lastModificationDate DESC LIMIT ? OFFSET ?", (displayAd, elem_to_display, offset,)).fetchall()
     else:
+        list_of_ids = [ f"\'{x}\'" for x in list_of_ids ]
         ids = ",".join(list_of_ids) if len(list_of_ids) > 1 else list_of_ids[0]
         #con.set_trace_callback(print)
         rows = con.execute(f"SELECT * FROM ad WHERE id IN ({ids}) ORDER BY lastModificationDate").fetchall()
@@ -70,7 +71,7 @@ def house(house_id):
     posts = get_all_houses(list_of_ids=house_ids)
     return render_template('index.html', title='Specifieke huizen', posts=posts)
 
-@app.route('/<int:id>/hide/', methods=('POST',))
+@app.route('/<string:id>/hide/', methods=('POST',))
 def hide(id):
     log(f"hiding: {id}")
     con = get_db_connection()
@@ -92,7 +93,7 @@ def hide(id):
     url = f"{url_for('index')}?page={str(page_nr)}#{str(next_id)}"
     return redirect(url)
 
-@app.route('/<int:id>/unhide/', methods=('POST',))
+@app.route('/<string:id>/unhide/', methods=('POST',))
 def unhide(id):
     log(f"unhiding: {id}")
     con = get_db_connection()
