@@ -98,7 +98,7 @@ class ImmoVlan(ImmoCollecterItf):
         return total_pages
 
     def get_list_all_houses(self) :
-        total_pages = min(self._get_total_pages(self.search_url), 6)  # only go up to 6 pages
+        total_pages = min(self._get_total_pages(self.search_url), 10)  # only go up to 6 pages
         houses = []
 
         # second options: STORAGE_KEY_SEARCH_RESULTS -> already json
@@ -130,6 +130,7 @@ class ImmoVlan(ImmoCollecterItf):
             if "SellAction" in script.string:
                 try:
                     house = json.loads(script.string)
+                    break
                 except Exception as e:
                     print(f'Error, vlan house ({house_ref["id"]}) could not be parsed: {str(e)}')
                     return house
@@ -165,3 +166,32 @@ class ImmoVlan(ImmoCollecterItf):
         normalized_house['pictureDownloads'] = image_urls
         
         return normalized_house
+
+    @staticmethod
+    def is_house_gone(url):
+        try:
+            house_page = requests.get(url, headers=HEADERS)
+            soup = BeautifulSoup (house_page.text, "html.parser")
+            scripts = soup.find_all("script", { "type": "application/ld+json" })
+            house = {}
+            for script in scripts:
+                if "SellAction" in script.string:
+                    house = json.loads(script.string)
+                    break
+            if not house:
+                return True
+        except:
+            return True
+        return False
+
+
+if __name__ == "__main__":
+    ImmoVlan.is_house_gone("https://immo.vlan.be/nl/detail/huis/te-koop/9340/lede/rbi81856")
+    
+    search = "https://immo.vlan.be/nl/vastgoed?transactiontypes=te-koop,in-openbare-verkoop&propertytypes=huis&provinces=oost-vlaanderen,west-vlaanderen&tags=hasgarden&mintotalsurface=1000&maxprice=750000&facades=4&noindex=1"
+    immo = ImmoVlan(search)
+    house_list = immo.get_list_all_houses()
+    for house in house_list:
+        house_details = immo.get_house_details(house)
+        
+    

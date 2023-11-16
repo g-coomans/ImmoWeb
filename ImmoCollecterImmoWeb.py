@@ -84,7 +84,7 @@ class ImmoWeb(ImmoCollecterItf):
         return total_pages
 
     def get_list_all_houses(self) :
-        total_pages = min(self._get_total_pages(self.search_url),5)  # only go up to 5 pages
+        total_pages = min(self._get_total_pages(self.search_url),8)  # only go up to 5 pages
         houses = []
         
         for page in range(1,total_pages+1):
@@ -132,3 +132,14 @@ class ImmoWeb(ImmoCollecterItf):
         normalized_house['immoProvider'] = "immoweb"
         
         return normalized_house
+
+    @staticmethod
+    def is_house_gone(url):
+        try:
+            house_page = requests.get(url, headers=HEADERS)
+            soup = BeautifulSoup (house_page.text, "html.parser")
+            house = json.loads(soup.find("div", "classified").find("script").string.split("window.classified = ")[1][:-10])
+        except:
+            return True
+        return False
+

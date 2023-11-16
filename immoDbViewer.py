@@ -44,9 +44,13 @@ def get_all_houses(elem_to_display=30, offset=0, show_hidden=False, list_of_ids=
         for key in used_db_keys:
             post[key] = row[key]
         mod_date = row['lastModificationDate']
-        post['lastModificationDate'] = mod_date.split("T")[0] if "T" in mod_date else mod_date
+        if mod_date:
+            post['lastModificationDate'] = mod_date.split("T")[0] if "T" in mod_date else mod_date
+            post['datetime'] = datetime.datetime.strptime(row['lastModificationDate'].split('.')[0], '%Y-%m-%dT%H:%M:%S')
+        else:
+            post['lastModificationDate'] = datetime.datetime.now().strftime('%Y-%m-%d')
+            post['datetime'] = datetime.datetime.now()
         post['pictureDownloads'] = row['pictureDownloads'].split(',')
-        post['datetime'] = datetime.datetime.strptime(row['lastModificationDate'].split('.')[0], '%Y-%m-%dT%H:%M:%S')
         posts.append(post)
     sorted_posts = sorted(posts, key=operator.itemgetter('datetime'), reverse=True)
     return sorted_posts
@@ -81,7 +85,7 @@ def hide(id):
     position = 0
     ids = [x['id'] for x in con.execute("SELECT id FROM ad WHERE displayAd = 1 ORDER BY lastModificationDate DESC").fetchall()]
     for idx, db_id in enumerate(ids):
-        if db_id == id:
+        if str(db_id) == id:
             position = idx+1
             next_id = ids[position]
             break
