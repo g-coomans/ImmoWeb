@@ -91,7 +91,7 @@ class HouseDb:
     def close(self):
         self.conn.close()
         self.conn = None
-        # print(f"Added {self.new_house_count} new houses!")
+        print(f"Added {self.new_house_count} new houses!")
 
 
 def wait_randomized_time():

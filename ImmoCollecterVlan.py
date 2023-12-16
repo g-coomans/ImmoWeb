@@ -149,8 +149,9 @@ class ImmoVlan(ImmoCollecterItf):
         
         house["id"] = house_ref["id"]
         house["title"] = soup.find("title").string
-        mod_date = soup.find(string = re.compile("Laatste aanpassing")).string
-        house['lastModificationDate'] = datetime.datetime.strptime(mod_date.split(' ')[-1], '%d/%m/%Y').strftime('%Y-%m-%dT12:00:00')
+        mod_date = soup.find(string = re.compile("Laatste aanpassing"))
+        mod_date_string = mod_date.string if mod_date else ''
+        house['lastModificationDate'] = datetime.datetime.strptime(mod_date.split(' ')[-1], '%d/%m/%Y').strftime('%Y-%m-%dT12:00:00') if mod_date_string else datetime.datetime.now().strftime('%Y-%m-%dT12:00:00')
         
         normalized_house = ImmoCollecterTools.extract_data_house(house, CONVERSION_TABLE)
         normalized_house["url"] = house_url
@@ -158,7 +159,7 @@ class ImmoVlan(ImmoCollecterItf):
         normalized_house["displayAd"] = 1
         normalized_house['immoProvider'] = "vlan"
 
-        images = soup.find_all("img", {"class": "img-thumb"})
+        images = soup.find_all("a", {"class": "img-thumb"})
         image_urls = []
         for image in images:
             image_urls.append(image["data-src"])
@@ -186,10 +187,13 @@ class ImmoVlan(ImmoCollecterItf):
 
 
 if __name__ == "__main__":
-    ImmoVlan.is_house_gone("https://immo.vlan.be/nl/detail/huis/te-koop/9340/lede/rbi81856")
+    #ImmoVlan.is_house_gone("https://immo.vlan.be/nl/detail/huis/te-koop/9340/lede/rbi81856")
     
     search = "https://immo.vlan.be/nl/vastgoed?transactiontypes=te-koop,in-openbare-verkoop&propertytypes=huis&provinces=oost-vlaanderen,west-vlaanderen&tags=hasgarden&mintotalsurface=1000&maxprice=750000&facades=4&noindex=1"
     immo = ImmoVlan(search)
+    house = {'url': 'https://immovlan.be/nl/detail/villa/te-koop/9255/buggenhout/rbi75364', 'id': 'rbi75364'}
+    house_details = immo.get_house_details(house)
+    
     house_list = immo.get_list_all_houses()
     for house in house_list:
         house_details = immo.get_house_details(house)
